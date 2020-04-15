@@ -1,0 +1,730 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  annotations:
+    note: Hello, I am development!
+    org: acmeCorporation
+  labels:
+    app: elasticsearch
+    app.kubernetes.io/component: infra
+    app.kubernetes.io/instance: elastic-abcxzy
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: elastic
+    app.kubernetes.io/part-of: micro-apps
+    app.kubernetes.io/version: v1
+    environment: development
+    name: elasticsearch
+  name: dev-elasticsearch-v1
+  namespace: development
+spec:
+  podManagementPolicy: Parallel
+  replicas: 1
+  selector:
+    matchLabels:
+      app: elasticsearch
+      app.kubernetes.io/component: infra
+      app.kubernetes.io/instance: elastic-abcxzy
+      app.kubernetes.io/managed-by: kustomize
+      app.kubernetes.io/name: elastic
+      app.kubernetes.io/part-of: micro-apps
+      app.kubernetes.io/version: v1
+      environment: development
+  serviceName: dev-elasticsearch-v1
+  template:
+    metadata:
+      annotations:
+        note: Hello, I am development!
+        org: acmeCorporation
+        prometheus.io/path: /metrics
+        prometheus.io/port: "9114"
+        prometheus.io/scrape: "true"
+      labels:
+        app: elasticsearch
+        app.kubernetes.io/component: infra
+        app.kubernetes.io/instance: elastic-abcxzy
+        app.kubernetes.io/managed-by: kustomize
+        app.kubernetes.io/name: elastic
+        app.kubernetes.io/part-of: micro-apps
+        app.kubernetes.io/version: v1
+        environment: development
+        name: elasticsearch
+    spec:
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - preference:
+              matchExpressions:
+              - key: kubernetes.io/arch
+                operator: In
+                values:
+                - amd64
+            weight: 1
+      containers:
+      - image: saidsef/elasticsearch
+        imagePullPolicy: Always
+        livenessProbe:
+          exec:
+            command:
+            - pgrep
+            - java
+          initialDelaySeconds: 10
+          periodSeconds: 3
+          successThreshold: 1
+          timeoutSeconds: 5
+        name: elasticsearch
+        ports:
+        - containerPort: 9200
+          name: elasticsearch
+          protocol: TCP
+        - containerPort: 9300
+          name: cluster
+          protocol: TCP
+        readinessProbe:
+          httpGet:
+            path: _cat/health
+            port: 9200
+          initialDelaySeconds: 30
+          periodSeconds: 5
+          successThreshold: 1
+          timeoutSeconds: 5
+        resources:
+          limits:
+            cpu: 500m
+            memory: 2048Mi
+          requests:
+            cpu: 250m
+            memory: 1024Mi
+        volumeMounts:
+        - mountPath: /usr/share/elasticsearch/data
+          name: elasticsearch-storage
+      - args:
+        - --es.uri=http://localhost:9200
+        - --es.all
+        - --es.indices
+        - --es.snapshots
+        image: justwatch/elasticsearch_exporter:1.1.0
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          exec:
+            command:
+            - pgrep
+            - elasticsearch_exporter
+          initialDelaySeconds: 10
+          periodSeconds: 3
+          successThreshold: 1
+          timeoutSeconds: 5
+        name: prometheus
+        ports:
+        - containerPort: 9114
+          name: prometheus
+          protocol: TCP
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 9114
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          successThreshold: 1
+          timeoutSeconds: 5
+        resources:
+          limits:
+            cpu: 100m
+            memory: 512Mi
+          requests:
+            cpu: 50m
+            memory: 128Mi
+      initContainers:
+      - command:
+        - sh
+        - -c
+        - chmod -R 777 /usr/share/elasticsearch/data
+        image: busybox
+        imagePullPolicy: Always
+        name: volume-mount-fix
+        volumeMounts:
+        - mountPath: /usr/share/elasticsearch/data
+          name: elasticsearch-storage
+      shareProcessNamespace: true
+      terminationGracePeriodSeconds: 60
+      volumes:
+      - hostPath:
+          path: /mnt/es
+          type: DirectoryOrCreate
+        name: elasticsearch-storage
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    note: Hello, I am development!
+    org: acmeCorporation
+  labels:
+    app: elasticsearch
+    app.kubernetes.io/component: infra
+    app.kubernetes.io/instance: elastic-abcxzy
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: elastic
+    app.kubernetes.io/part-of: micro-apps
+    app.kubernetes.io/version: v1
+    environment: development
+    name: elasticsearch
+  name: dev-elasticsearch-v1
+  namespace: development
+spec:
+  ports:
+  - name: elasticsearch
+    port: 9200
+    protocol: TCP
+    targetPort: 9200
+  - name: cluster
+    port: 9300
+    protocol: TCP
+    targetPort: 9300
+  selector:
+    app: elasticsearch
+    app.kubernetes.io/component: infra
+    app.kubernetes.io/instance: elastic-abcxzy
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: elastic
+    app.kubernetes.io/part-of: micro-apps
+    app.kubernetes.io/version: v1
+    environment: development
+  type: ClusterIP
+---
+apiVersion: v1
+data:
+  APP_ENV: development
+  ELASTIC_LOG_LEVEL: info
+  LOG_LEVEL: debug
+kind: ConfigMap
+metadata:
+  annotations:
+    note: Hello, I am development!
+    org: acmeCorporation
+  labels:
+    app.kubernetes.io/component: infra
+    app.kubernetes.io/instance: elastic-abcxzy
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: elastic
+    app.kubernetes.io/part-of: micro-apps
+    app.kubernetes.io/version: v1
+    environment: development
+  name: dev-env-vars-v1-cf9chdhdb8
+  namespace: development
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  annotations:
+    note: Hello, I am development!
+    org: acmeCorporation
+  labels:
+    app: nifi
+    app.kubernetes.io/component: infra
+    app.kubernetes.io/instance: nifi-abcxzy
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: nifi
+    app.kubernetes.io/part-of: micro-apps
+    app.kubernetes.io/version: v1
+    environment: development
+    name: nifi
+  name: dev-nifi-v1
+  namespace: development
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: nifi
+      app.kubernetes.io/component: infra
+      app.kubernetes.io/instance: nifi-abcxzy
+      app.kubernetes.io/managed-by: kustomize
+      app.kubernetes.io/name: nifi
+      app.kubernetes.io/part-of: micro-apps
+      app.kubernetes.io/version: v1
+      environment: development
+  serviceName: dev-nifi-v1
+  template:
+    metadata:
+      annotations:
+        note: Hello, I am development!
+        org: acmeCorporation
+      labels:
+        app: nifi
+        app.kubernetes.io/component: infra
+        app.kubernetes.io/instance: nifi-abcxzy
+        app.kubernetes.io/managed-by: kustomize
+        app.kubernetes.io/name: nifi
+        app.kubernetes.io/part-of: micro-apps
+        app.kubernetes.io/version: v1
+        environment: development
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchLabels:
+                app: nifi
+                app.kubernetes.io/component: infra
+                app.kubernetes.io/instance: nifi-abcxzy
+                app.kubernetes.io/managed-by: kustomize
+                app.kubernetes.io/name: nifi
+                app.kubernetes.io/part-of: micro-apps
+                app.kubernetes.io/version: v1
+                environment: development
+            topologyKey: kubernetes.io/hostname
+      containers:
+      - env:
+        - name: NIFI_WEB_HTTP_PORT
+          value: "8080"
+        - name: NIFI_CLUSTER_IS_NODE
+          value: "true"
+        - name: NIFI_CLUSTER_NODE_PROTOCOL_PORT
+          value: "8082"
+        - name: NIFI_CLUSTER_NODE_ADDRESS
+          value: nifi
+        - name: NIFI_ZK_CONNECT_STRING
+          value: zookeeper:2181
+        - name: NIFI_ELECTION_MAX_WAIT
+          value: 1 min
+        image: apache/nifi:latest
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          exec:
+            command:
+            - pgrep
+            - java
+        name: nifi
+        ports:
+        - containerPort: 8080
+          name: nifi
+        - containerPort: 8082
+          name: cluster
+        readinessProbe:
+          initialDelaySeconds: 60
+          periodSeconds: 10
+          tcpSocket:
+            port: 8080
+        resources:
+          limits:
+            cpu: 400m
+            memory: 512Gi
+          requests:
+            cpu: 200m
+            memory: 128Mi
+      nodeSelector:
+        beta.kubernetes.io/os: linux
+        kubernetes.io/arch: amd64
+      restartPolicy: Always
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  annotations:
+    note: Hello, I am development!
+    org: acmeCorporation
+  labels:
+    app: zookeeper
+    app.kubernetes.io/component: infra
+    app.kubernetes.io/instance: nifi-abcxzy
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: nifi
+    app.kubernetes.io/part-of: micro-apps
+    app.kubernetes.io/version: v1
+    environment: development
+    name: zookeeper
+  name: dev-zookeeper-v1
+  namespace: development
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: zookeeper
+      app.kubernetes.io/component: infra
+      app.kubernetes.io/instance: nifi-abcxzy
+      app.kubernetes.io/managed-by: kustomize
+      app.kubernetes.io/name: nifi
+      app.kubernetes.io/part-of: micro-apps
+      app.kubernetes.io/version: v1
+      environment: development
+  serviceName: dev-zookeeper-v1
+  template:
+    metadata:
+      annotations:
+        note: Hello, I am development!
+        org: acmeCorporation
+      labels:
+        app: zookeeper
+        app.kubernetes.io/component: infra
+        app.kubernetes.io/instance: nifi-abcxzy
+        app.kubernetes.io/managed-by: kustomize
+        app.kubernetes.io/name: nifi
+        app.kubernetes.io/part-of: micro-apps
+        app.kubernetes.io/version: v1
+        environment: development
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchLabels:
+                app: zookeeper
+                app.kubernetes.io/component: infra
+                app.kubernetes.io/instance: nifi-abcxzy
+                app.kubernetes.io/managed-by: kustomize
+                app.kubernetes.io/name: nifi
+                app.kubernetes.io/part-of: micro-apps
+                app.kubernetes.io/version: v1
+                environment: development
+            topologyKey: kubernetes.io/hostname
+      containers:
+      - env:
+        - name: ALLOW_ANONYMOUS_LOGIN
+          value: "yes"
+        image: zookeeper:latest
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          exec:
+            command:
+            - which
+            - java
+        name: zookeeper
+        ports:
+        - containerPort: 2181
+          name: zk
+        - containerPort: 5111
+          name: cmd
+        readinessProbe:
+          tcpSocket:
+            port: 2181
+        resources:
+          limits:
+            cpu: 200m
+            memory: 512Mi
+          requests:
+            cpu: 100m
+            memory: 128Mi
+      nodeSelector:
+        kubernetes.io/arch: amd64
+        kubernetes.io/os: linux
+      restartPolicy: Always
+---
+apiVersion: v1
+data:
+  auth: YWRtaW46JGFwcjEkSDY1dnBkTU8kMXAxOGMxN3BuZVFUT2ZjVC9TZkZzMQo=
+kind: Secret
+metadata:
+  annotations:
+    note: Hello, I am development!
+    org: acmeCorporation
+  labels:
+    app: nifi
+    app.kubernetes.io/component: infra
+    app.kubernetes.io/instance: nifi-abcxzy
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: nifi
+    app.kubernetes.io/part-of: micro-apps
+    app.kubernetes.io/version: v1
+    environment: development
+  name: dev-nifi-basic-auth-v1
+  namespace: development
+type: Opaque
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    note: Hello, I am development!
+    org: acmeCorporation
+  labels:
+    app: nifi
+    app.kubernetes.io/component: infra
+    app.kubernetes.io/instance: nifi-abcxzy
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: nifi
+    app.kubernetes.io/part-of: micro-apps
+    app.kubernetes.io/version: v1
+    environment: development
+  name: dev-nifi-v1
+  namespace: development
+spec:
+  ports:
+  - name: nifi
+    port: 8080
+    protocol: TCP
+    targetPort: 8080
+  - name: cluster
+    port: 8082
+    protocol: TCP
+    targetPort: 8082
+  selector:
+    app: nifi
+    app.kubernetes.io/component: infra
+    app.kubernetes.io/instance: nifi-abcxzy
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: nifi
+    app.kubernetes.io/part-of: micro-apps
+    app.kubernetes.io/version: v1
+    environment: development
+  type: NodePort
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    note: Hello, I am development!
+    org: acmeCorporation
+  labels:
+    app: zookeeper
+    app.kubernetes.io/component: infra
+    app.kubernetes.io/instance: nifi-abcxzy
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: nifi
+    app.kubernetes.io/part-of: micro-apps
+    app.kubernetes.io/version: v1
+    environment: development
+  name: dev-zookeeper-v1
+  namespace: development
+spec:
+  ports:
+  - name: zk
+    port: 2181
+    protocol: TCP
+    targetPort: 2181
+  - name: cmd
+    port: 5111
+    protocol: TCP
+    targetPort: 5111
+  selector:
+    app: zookeeper
+    app.kubernetes.io/component: infra
+    app.kubernetes.io/instance: nifi-abcxzy
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: nifi
+    app.kubernetes.io/part-of: micro-apps
+    app.kubernetes.io/version: v1
+    environment: development
+    statefulset.kubernetes.io/pod-name: zookeeper-0
+  type: ClusterIP
+---
+apiVersion: networking.k8s.io/v1beta1
+kind: Ingress
+metadata:
+  annotations:
+    nginx.ingress.kubernetes.io/auth-realm: Authentication Required
+    nginx.ingress.kubernetes.io/auth-secret: dev-nifi-basic-auth-v1
+    nginx.ingress.kubernetes.io/auth-type: basic
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      server_tokens off;
+    note: Hello, I am development!
+    org: acmeCorporation
+  labels:
+    app: nifi
+    app.kubernetes.io/component: infra
+    app.kubernetes.io/instance: nifi-abcxzy
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: nifi
+    app.kubernetes.io/part-of: micro-apps
+    app.kubernetes.io/version: v1
+    environment: development
+  name: dev-nifi-v1
+  namespace: development
+spec:
+  rules:
+  - host: nifi.kashmora.com
+    http:
+      paths:
+      - backend:
+          serviceName: dev-nifi-v1
+          servicePort: 8080
+        path: /
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  annotations:
+    note: Hello, I am development!
+    org: acmeCorporation
+  labels:
+    app: postgres
+    app.kubernetes.io/component: database
+    app.kubernetes.io/instance: postgres-abcxzy
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: postgres
+    app.kubernetes.io/part-of: yeti
+    app.kubernetes.io/version: v1
+    environment: development
+  name: dev-postgres-v1
+  namespace: development
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+      app.kubernetes.io/component: database
+      app.kubernetes.io/instance: postgres-abcxzy
+      app.kubernetes.io/managed-by: kustomize
+      app.kubernetes.io/name: postgres
+      app.kubernetes.io/part-of: yeti
+      app.kubernetes.io/version: v1
+      environment: development
+  serviceName: postgres-internal
+  template:
+    metadata:
+      annotations:
+        note: Hello, I am development!
+        org: acmeCorporation
+      labels:
+        app: postgres
+        app.kubernetes.io/component: database
+        app.kubernetes.io/instance: postgres-abcxzy
+        app.kubernetes.io/managed-by: kustomize
+        app.kubernetes.io/name: postgres
+        app.kubernetes.io/part-of: yeti
+        app.kubernetes.io/version: v1
+        environment: development
+    spec:
+      containers:
+      - env:
+        - name: POSTGRES_DB
+          value: postgres
+        - name: POSTGRES_USER
+          value: postgres
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: postgres-password
+              name: dev-postgres-secrets-v1-762hg876k6
+        image: postgres:11.5-alpine
+        imagePullPolicy: Always
+        livenessProbe:
+          exec:
+            command:
+            - pg_isready
+            - -U
+            - $(POSTGRES_USER)
+          initialDelaySeconds: 3
+          timeoutSeconds: 2
+        name: postgres
+        ports:
+        - containerPort: 5432
+          name: tcp-pg
+          protocol: TCP
+        readinessProbe:
+          exec:
+            command:
+            - pg_isready
+            - -U
+            - $(POSTGRES_USER)
+          initialDelaySeconds: 3
+          timeoutSeconds: 2
+        volumeMounts:
+        - mountPath: /var/lib/postgresql/data
+          name: database-storage
+      terminationGracePeriodSeconds: 10
+  volumeClaimTemplates:
+  - metadata:
+      labels:
+        app: postgres
+        app.kubernetes.io/component: database
+        app.kubernetes.io/instance: postgres-abcxzy
+        app.kubernetes.io/managed-by: kustomize
+        app.kubernetes.io/name: postgres
+        app.kubernetes.io/part-of: yeti
+        app.kubernetes.io/version: v1
+        environment: development
+      name: postgres-storage
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    note: Hello, I am development!
+    org: acmeCorporation
+  labels:
+    app: postgres
+    app.kubernetes.io/component: database
+    app.kubernetes.io/instance: postgres-abcxzy
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: postgres
+    app.kubernetes.io/part-of: yeti
+    app.kubernetes.io/version: v1
+    environment: development
+  name: dev-postgres-v1
+  namespace: development
+spec:
+  ports:
+  - name: tcp-pg
+    nodePort: 31432
+    port: 5432
+    targetPort: tcp-pg
+  selector:
+    app: postgres
+    app.kubernetes.io/component: database
+    app.kubernetes.io/instance: postgres-abcxzy
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: postgres
+    app.kubernetes.io/part-of: yeti
+    app.kubernetes.io/version: v1
+    environment: development
+    role: master
+  type: NodePort
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    note: Hello, I am development!
+    org: acmeCorporation
+  labels:
+    app: postgres
+    app.kubernetes.io/component: database
+    app.kubernetes.io/instance: postgres-abcxzy
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: postgres
+    app.kubernetes.io/part-of: yeti
+    app.kubernetes.io/version: v1
+    environment: development
+  name: dev-postgres-headless-v1
+  namespace: development
+spec:
+  clusterIP: None
+  ports:
+  - name: tcp-pg
+    port: 5432
+    targetPort: tcp-pg
+  selector:
+    app: postgres
+    app.kubernetes.io/component: database
+    app.kubernetes.io/instance: postgres-abcxzy
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: postgres
+    app.kubernetes.io/part-of: yeti
+    app.kubernetes.io/version: v1
+    environment: development
+  type: ClusterIP
+---
+apiVersion: v1
+data:
+  DATABASE_PASSWORD: ZTJlLXJlYWwtcGFzcw==
+kind: Secret
+metadata:
+  annotations:
+    note: Hello, I am development!
+    org: acmeCorporation
+  labels:
+    app.kubernetes.io/component: database
+    app.kubernetes.io/instance: postgres-abcxzy
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: postgres
+    app.kubernetes.io/part-of: yeti
+    app.kubernetes.io/version: v1
+    environment: development
+  name: dev-postgres-secrets-v1-762hg876k6
+  namespace: development
+type: Opaque
